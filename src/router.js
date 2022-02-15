@@ -11,42 +11,37 @@ const secretKey = "thisismysecretkey";
 // post request for register ==========================
 router.post('/register', async (req, res) => {
     const { username, password } = req.body;
-
-    bcrypt.hash(password, saltRounds).then( hash => {
-        createUser(hash, username, res);
-    })
-});
-
-// create a user ===================================
-const createUser = async (hash, username, res) => {
+    const hash = await bcrypt.hash(password, saltRounds);
+    
     const user = await prisma.user.create({
         data: {
             username,
             password: hash
         }
     })
-    return res.json({data: user});
-} 
+    return res.json(user);
+});
+
 
 // post request for login===========================
 router.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    
+    const { loginUsername, loginPassword } = req.body;
+  
     const user = await prisma.user.findUnique({
         where: {
-            username
+            username: loginUsername
         }
     });
-
+   
     if(!user){
         return res.status(401).send('User Not Found')
     }
 
-    const match = await bcrypt.compare(password, user.password);
+    const match = await bcrypt.compare(loginPassword, user.password);
     if (match) {
-        const payload = { username };
+        const payload = { loginUsername };
         const token = jwt.sign(payload, secretKey);
-        res.json({ tokenKey: token });
+        return res.json(token);
     }
     return res.status(401).send("password doesn't match");
 });
